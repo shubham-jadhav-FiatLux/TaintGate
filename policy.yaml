@@ -1,0 +1,141 @@
+# TaintGate Reference Policy Configuration
+
+labels:
+  integrity: [trusted, endorsed, untrusted]          # high → low
+  confidentiality: [public, internal, secret]        # low → high
+
+tools:
+  fs.read_file:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+    overrides:
+      - path: "~/company/secrets/**"
+        confidentiality: secret
+      - path: "**/secrets/**"
+        confidentiality: secret
+      - path: "~/.ssh/**"
+        confidentiality: secret
+      - path: "**/.ssh/**"
+        confidentiality: secret
+      - path: "**/resume.txt"
+        integrity: untrusted
+      - path: "**/inbox/**"
+        integrity: untrusted
+      - path: "**/issues/**"
+        integrity: untrusted
+      - path: "issues/**"
+        integrity: untrusted
+
+  file.read:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+    overrides:
+      - path: "~/company/secrets/**"
+        confidentiality: secret
+      - path: "**/secrets/**"
+        confidentiality: secret
+
+  fs.search:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+
+  bash.exec:
+    effect: local_write
+
+  # First-party read APIs: outputs are trusted (our own backends) but internal (business data).
+  # NOTE: tools are declared individually on purpose. A blanket `api.*: read` would mislabel a
+  # state-changing call such as `api.transfer_funds` as a harmless read; undeclared members of
+  # these families fall through to the fail-closed `unknown_tools` policy instead.
+  api.user_lookup:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+
+  api.get_transactions:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+
+  cloud.get_metrics:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+
+  cloud.describe_instances:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+
+  user.get_profile:
+    effect: read
+    output:
+      integrity: trusted
+      confidentiality: internal
+
+  # Customer-authored content (support tickets) is UNTRUSTED input even though it comes from a
+  # first-party system: the ticket body is written by an external party and can carry injections.
+  crm.read_ticket:
+    effect: read
+    output:
+      integrity: untrusted
+      confidentiality: internal
+
+  web.fetch:
+    effect: read
+    output:
+      integrity: untrusted
+      confidentiality: public
+
+  email.read:
+    effect: read
+    output:
+      integrity: untrusted
+      confidentiality: internal
+
+  # MCP content channels carry server/third-party-controlled text: allow the read (so the agent
+  # stays functional) but label it UNTRUSTED so an injection via a resource/prompt taints the
+  # session and gates any subsequent dangerous action, rather than silently entering context.
+  resources.read:
+    effect: read
+    output:
+      integrity: untrusted
+      confidentiality: internal
+
+  prompts.get:
+    effect: read
+    output:
+      integrity: untrusted
+      confidentiality: internal
+
+  email.send:
+    effect: external
+    recipients_arg: to
+
+  fs.write_file:
+    effect: local_write
+
+  db.delete_table:
+    effect: irreversible
+
+policy:
+  preset: rule_of_two
+  contacts:
+    - colleague@example.com
+    - boss@example.com
+  rules:
+    - deny: external
+      when: data.confidentiality >= internal and recipient not in contacts
+    - approve: external
+      when: context.integrity == untrusted
+    - approve: local_write
+      when: context.integrity == untrusted

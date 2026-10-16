@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "taintgate"
+version = "0.2.0"
+description = "Deterministic reference monitor and information-flow control for LLM agents"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    { name = "Shubham Jadhav", email = "336961470+shubham-jadhav-FiatLux@users.noreply.github.com" }
+]
+keywords = [
+    "information-flow-control",
+    "reference-monitor",
+    "security",
+    "llm-agents",
+    "prompt-injection",
+    "mcp",
+    "biba",
+    "bell-lapadula",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0.0",
+]
+
+[project.optional-dependencies]
+mcp = [
+    "mcp>=1.0.0",
+]
+eval = [
+    "langchain>=0.2.0",
+    "agentdojo>=0.1.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "hypothesis>=6.90.0",
+]
+
+[project.scripts]
+taintgate = "taintgate.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["taintgate*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
